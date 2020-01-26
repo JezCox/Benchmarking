@@ -1,14 +1,11 @@
 package com.jhc.benchmarking.bmwork;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
@@ -33,7 +30,7 @@ abstract class MapMeasuresBase implements Measure, BMMapTests{
 
     @Override
     public List<String> performTenThousandElementBenchmarks() {
-        return benchmarkForN(1000);
+        return benchmarkForN(10000);
     }
 
     @Override
@@ -45,17 +42,20 @@ abstract class MapMeasuresBase implements Measure, BMMapTests{
     public List<String> performHundredMillionElementBenchmark() {
         return benchmarkForN(100_000_000);
     }
-
-    private List<String> benchmarkForN(long numElements) {
-        
+    
+    private void resetMap(long numElements) {
         _mapUnderBenchmark.clear();
         
-        List<String> responses = new ArrayList<>();
         long[] vals = LongStream.rangeClosed(1, numElements).toArray();
         for (long l: vals) {
             _mapUnderBenchmark.put(String.valueOf(l), l);
         }
+    }
 
+    private List<String> benchmarkForN(long numElements) {
+        
+        List<String> responses = new ArrayList<>();
+        resetMap(numElements);
         responses.add(getZeroth());
         responses.add(getFirst());
         responses.add(getNth());
@@ -67,7 +67,7 @@ abstract class MapMeasuresBase implements Measure, BMMapTests{
         responses.add(replaceRandomth());
         responses.add(streamFilterValuesLessThanMedian());
         responses.add(streamSortAndReduceToSum());
-
+        responses.add(streamSortAndCopyToNewMap());
         return responses;
     }
     
@@ -114,7 +114,7 @@ abstract class MapMeasuresBase implements Measure, BMMapTests{
         int random = (int)(Math.random()*size-1);
         NanoStopwatch nsw = new NanoStopwatch();
         nsw.Start();
-        Long firstVal = _mapUnderBenchmark.get(Integer.toString(random));
+        Long randomVal = _mapUnderBenchmark.get(Integer.toString(random));
         return "getRandom (" + random + ") took " + nsw.Stop() + "ns";
     }
 
@@ -123,8 +123,8 @@ abstract class MapMeasuresBase implements Measure, BMMapTests{
         int size = _mapUnderBenchmark.size();
         NanoStopwatch nsw = new NanoStopwatch();
         nsw.Start();
-        long lSize = size;
-        _mapUnderBenchmark.put(Integer.toString(size), lSize);
+        long lSize = size + 1;
+        _mapUnderBenchmark.put(Long.toString(lSize), lSize);
         return "putNewAtEnd took " + nsw.Stop() + "ns";
     }
 
@@ -141,8 +141,8 @@ abstract class MapMeasuresBase implements Measure, BMMapTests{
         int size = _mapUnderBenchmark.size();
         NanoStopwatch nsw = new NanoStopwatch();
         nsw.Start();
-        Long firstVal = _mapUnderBenchmark.replace(Integer.toString(size-1), 5L);
-        return "replaceNth(" + (size-1) + ") took " + nsw.Stop() + "ns";
+        _mapUnderBenchmark.replace(Integer.toString(size), 5L);
+        return "replaceNth(at key:" + size + ") took " + nsw.Stop() + "ns";
     }
 
     @Override
@@ -151,8 +151,8 @@ abstract class MapMeasuresBase implements Measure, BMMapTests{
         int random = (int)(Math.random()*size-1);
         NanoStopwatch nsw = new NanoStopwatch();
         nsw.Start();
-        Long firstVal = _mapUnderBenchmark.replace(Integer.toString(random), 5L);
-        return "replaceRandom(" + random + ")  took " + nsw.Stop() + "ns";
+        _mapUnderBenchmark.replace(Integer.toString(random), 5L);
+        return "replaceRandom(at key:" + random + ")  took " + nsw.Stop() + "ns";
     }
 
     @Override
@@ -165,11 +165,28 @@ abstract class MapMeasuresBase implements Measure, BMMapTests{
                 .stream()
                 .filter(entry -> entry.getValue() < median);
         long sizeOfStream = vals.count();
+//        vals.forEach(val -> System.out.println(val.getKey() + "-->" + val.getValue()));  // temp dbg
         return "streamFilterValuesLessThanMedian took (size:" + sizeOfStream +") " + nsw.Stop() + "ns";
     }
 
     @Override
     public String streamSortAndReduceToSum() {
+        NanoStopwatch nsw = new NanoStopwatch();
+        nsw.Start();
+
+        // NOTE: SUM will be different every time because of replaceRandomth !!!!
+        long sum = _mapUnderBenchmark
+                .entrySet()
+                .stream()
+                .sorted(Map.Entry.comparingByValue())
+                .map(Map.Entry::getValue)
+                .reduce(0L, Long::sum);
+        
+        return "streamSortAndReduceToSum (result:" + sum + ") took " + nsw.Stop() + "ns";
+    }  
+
+    @Override 
+    public String streamSortAndCopyToNewMap() {
         NanoStopwatch nsw = new NanoStopwatch();
         nsw.Start();
         try {
@@ -179,13 +196,11 @@ abstract class MapMeasuresBase implements Measure, BMMapTests{
                     .stream()
                     .sorted(Map.Entry.comparingByValue())
                     .forEachOrdered( kv -> mapSorted.put(kv.getKey(), kv.getValue() ) );
-        } catch (InstantiationException ex) {
-            Logger.getLogger(MapMeasuresBase.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
+        } catch (InstantiationException | IllegalAccessException ex) {
             Logger.getLogger(MapMeasuresBase.class.getName()).log(Level.SEVERE, null, ex);
         }        
-        return "streamSortAndReduceToSum took " + nsw.Stop() + "ns";
-    }  
-
+        return "streamSortAndCopyToNewMap took " + nsw.Stop() + "ns";
+    }
+    
     
 }

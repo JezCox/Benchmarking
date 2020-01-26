@@ -9,6 +9,8 @@ import java.util.stream.LongStream;
 abstract class ListMeasuresBase implements Measure, BMListTests {
     
    List<String> _listUnderBenchmark;
+   
+   abstract void populateListFromArray(long[] vals);
     
     @Override
     public List<String> performTenElementBenchmarks() {
@@ -47,16 +49,14 @@ abstract class ListMeasuresBase implements Measure, BMListTests {
         List<String> responses = new ArrayList<>();
         long[] vals = LongStream.rangeClosed(1, numElements).toArray();
         
-        // we can't assure an ArrayList<> by streaming :-( !!!...
-//        List<Long> longsList = Arrays.stream(vals).boxed().collect(Collectors.toList());
-//        _listUnderBenchmark = longsList.stream()
-//                .map(l -> Long.toString(l))
-//                .collect(Collectors.toList());
-        
         // ...is there a better way (re above) ??
-        for (long l: vals) {
-            _listUnderBenchmark.add(Long.toString(l));
-        }
+//        for (long l: vals) {
+//            _listUnderBenchmark.add(Long.toString(l));
+//        }
+
+        // THIS is the better way
+        populateListFromArray(vals);
+        
         
         responses.add(atFirst());
         responses.add(atNth());

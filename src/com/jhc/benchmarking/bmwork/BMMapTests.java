@@ -12,5 +12,6 @@ public interface BMMapTests {
     String replaceRandomth();
     String streamFilterValuesLessThanMedian();
     String streamSortAndReduceToSum();
+    String streamSortAndCopyToNewMap();
     // any more ???
 }

@@ -68,7 +68,7 @@ public class BenchmarkingController implements Initializable {
         detailsTextArea.appendText("LinkedList measures:\n");
         
         Measure measure = new LinkedListMeasure();
-        performRequiredListBenchmarks(measure);
+        Platform.runLater( () -> performRequiredListBenchmarks(measure));
     }
 
     private void performRequiredListBenchmarks(Measure measure) {

@@ -19,7 +19,7 @@ public class Benchmarking extends Application {
         GridPane grid = loader.load();
         controller = loader.getController();
         
-        Scene scene = new Scene(grid, 700, 880);
+        Scene scene = new Scene(grid, 700, 950);
         
         stage.setScene(scene);
         stage.setTitle("My Benchmarking Thing");
